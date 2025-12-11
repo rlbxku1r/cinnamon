@@ -776,6 +776,11 @@ class PathContextMenuItem extends ContextMenuItem {
     }
 
     _openContainingFolder() {
+        if (!this._openContainingFolderViaDBus())
+            this._openContainingFolderViaMimeApp();
+    }
+
+    _openContainingFolderViaDBus() {
         try {
             Gio.DBus.session.call_sync(
                 "org.freedesktop.FileManager1",
@@ -792,7 +797,22 @@ class PathContextMenuItem extends ContextMenuItem {
                 null
             );
         } catch (e) {
-            global.logError(`Could not open containing folder: ${e}`);
+            global.log(`Could not open containing folder via DBus: ${e}`);
+            return false;
+        }
+        return true;
+    }
+
+    _openContainingFolderViaMimeApp() {
+        let app = Gio.AppInfo.get_default_for_type("inode/directory", true);
+        if (app === null) {
+            log.logError(`Could not open containing folder via mime app: No associated file manager found`);
+            return;
+        }
+        try {
+            app.launch_uris([this._button.uri], null);
+        } catch (e) {
+            global.logError(`Could not open containing folder via mime app: ${e}`);
         }
     }
 }
